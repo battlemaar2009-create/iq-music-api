@@ -3,92 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music World | المليارات</title>
+    <title>Music billions | مكتبة المليارات</title>
     <style>
-        :root { --main: #1db954; --bg: #0b0b0b; --card: #161616; }
-        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding-bottom: 110px; }
-        .header { padding: 30px 20px; text-align: center; background: linear-gradient(var(--main), var(--bg)); }
-        .search-box { display: flex; max-width: 400px; margin: auto; gap: 5px; }
-        input { flex: 1; padding: 12px; border-radius: 20px; border: none; outline: none; background: #222; color: white; }
-        button { padding: 12px 20px; border-radius: 20px; border: none; background: white; font-weight: bold; cursor: pointer; }
-        .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 15px; }
-        .card { background: var(--card); padding: 10px; border-radius: 10px; text-align: center; font-size: 13px; cursor: pointer; }
-        .card img { width: 100%; border-radius: 8px; margin-bottom: 8px; }
-        .player { position: fixed; bottom: 0; width: 100%; background: #000; padding: 15px; border-top: 2px solid var(--main); display: none; box-sizing: border-box; }
-        audio { width: 100%; height: 35px; }
+        :root { --primary: #1db954; --bg: #000000; --card: #181818; }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding-bottom: 120px; }
+        .header { padding: 40px 20px; text-align: center; background: linear-gradient(var(--primary), var(--bg)); }
+        .search-area { max-width: 500px; margin: auto; display: flex; gap: 8px; }
+        input { flex: 1; padding: 15px; border-radius: 30px; border: none; background: #222; color: white; outline: none; }
+        button { padding: 15px 25px; border-radius: 30px; border: none; background: white; font-weight: bold; cursor: pointer; }
+        .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; padding: 20px; }
+        .card { background: var(--card); padding: 12px; border-radius: 12px; text-align: center; transition: 0.3s; }
+        .card:hover { transform: scale(1.05); background: #282828; }
+        .card img { width: 100%; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .p-bar { position: fixed; bottom: 0; width: 100%; background: #121212; padding: 20px; border-top: 2px solid var(--primary); display: none; box-sizing: border-box; z-index: 9999; }
+        audio { width: 100%; height: 40px; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h2>موسيقى المليارات 🎶</h2>
-    <div class="search-box">
-        <input type="text" id="q" placeholder="ابحث عن أي أغنية...">
-        <button onclick="search()">بحث</button>
+    <h1>موسيقى المليارات 🎶</h1>
+    <div class="search-area">
+        <input type="text" id="query" placeholder="اكتب اسم الأغنية أو الفنان...">
+        <button onclick="fetchMusic()">بحث</button>
     </div>
 </div>
 
-<div id="status" style="text-align: center; margin-top: 10px; color: var(--main);"></div>
-<div class="results" id="res"></div>
+<div id="msg" style="text-align: center; margin: 20px; color: var(--primary);"></div>
+<div class="results" id="list"></div>
 
-<div class="player" id="p">
-    <div id="t" style="font-size: 12px; margin-bottom: 5px; text-align: center;"></div>
-    <audio id="a" controls autoplay></audio>
+<div class="p-bar" id="playerBox">
+    <div id="nowPlaying" style="font-size: 13px; margin-bottom: 10px; text-align: center; color: var(--primary);"></div>
+    <audio id="mainAudio" controls autoplay></audio>
 </div>
 
 <script>
-    // استخدام وسيط AllOrigins لتجاوز حظر CORS
-    const proxy = "https://api.allorigins.win/raw?url=";
-    const api = "https://pipedapi.kavin.rocks/search?q=";
+    // نستخدم وسيطاً مختلفاً تماماً لضمان تخطي الحظر
+    const corsProxy = "https://corsproxy.io/?";
+    const apiBase = "https://pipedapi.kavin.rocks";
 
-    async function search() {
-        const q = document.getElementById('q').value;
-        const res = document.getElementById('res');
-        const status = document.getElementById('status');
+    async function fetchMusic() {
+        const q = document.getElementById('query').value;
+        const list = document.getElementById('list');
+        const msg = document.getElementById('msg');
+        
         if(!q) return;
-
-        res.innerHTML = "";
-        status.innerText = "جاري جلب النتائج من السيرفر العالمي...";
+        list.innerHTML = "";
+        msg.innerText = "جاري البحث في السيرفرات العالمية... انتظر ثانية";
 
         try {
-            // ندمج الرابط مع الوسيط لفك الحظر
-            const response = await fetch(`${proxy}${encodeURIComponent(api + q + "&filter=music_songs")}`);
+            // استخدام corsproxy.io وهو وسيط سريع ومستقر جداً
+            const targetUrl = `${apiBase}/search?q=${encodeURIComponent(q)}&filter=music_songs`;
+            const response = await fetch(corsProxy + encodeURIComponent(targetUrl));
             const data = await response.json();
 
-            status.innerText = "";
+            if(!data.items || data.items.length === 0) {
+                msg.innerText = "لم نجد نتائج، جرب كلمات أخرى";
+                return;
+            }
+
+            msg.innerText = "";
             data.items.forEach(item => {
                 if(item.type === 'stream') {
-                    const div = document.createElement('div');
-                    div.className = 'card';
-                    div.innerHTML = `<img src="${item.thumbnail}"><div>${item.title}</div>`;
-                    div.onclick = () => play(item.url.split('=')[1], item.title);
-                    res.appendChild(div);
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `<img src="${item.thumbnail}"><div style="font-size:12px; font-weight:bold;">${item.title}</div>`;
+                    card.onclick = () => startPlayer(item.url.split('=')[1], item.title);
+                    list.appendChild(card);
                 }
             });
         } catch (e) {
-            status.innerText = "السيرفر مشغول، حاول مجدداً بعد ثوانٍ";
+            msg.innerHTML = "حدث خطأ في الاتصال. <br> نصيحة: تأكد من أنك تشغل الرابط من GitHub وليس من ملف محلي.";
         }
     }
 
-    async function play(id, title) {
-        const p = document.getElementById('p');
-        const a = document.getElementById('a');
-        const t = document.getElementById('t');
-        
-        p.style.display = "block";
-        t.innerText = "جاري الاتصال بالبث المباشر...";
+    async function startPlayer(id, title) {
+        const box = document.getElementById('playerBox');
+        const audio = document.getElementById('mainAudio');
+        const text = document.getElementById('nowPlaying');
+
+        box.style.display = "block";
+        text.innerText = "جاري تحضير البث: " + title;
 
         try {
-            const streamUrl = `${proxy}${encodeURIComponent("https://pipedapi.kavin.rocks/streams/" + id)}`;
-            const response = await fetch(streamUrl);
-            const data = await response.json();
+            const streamTarget = `${apiBase}/streams/${id}`;
+            const res = await fetch(corsProxy + encodeURIComponent(streamTarget));
+            const data = await res.json();
             
-            const audio = data.audioStreams.find(s => s.format === 'M4A') || data.audioStreams[0];
-            a.src = audio.url;
-            t.innerText = "تشغيل: " + title;
-            a.play();
+            // اختيار رابط الصوت المباشر
+            const audioData = data.audioStreams.find(s => s.format === 'M4A') || data.audioStreams[0];
+            audio.src = audioData.url;
+            text.innerText = "تشغيل الآن: " + title;
+            audio.play();
         } catch (e) {
-            alert("خطأ في تشغيل الرابط");
+            alert("عذراً، هذا الرابط محمي أو السيرفر مضغوط.");
         }
     }
 </script>
